@@ -26,7 +26,7 @@ func GetConfig() (*Config, error) {
 		return nil, err
 	}
 
-	var config *Config
+	config := &Config{}
 
 	config.SECRET_KEY = os.Getenv("SECRET_KEY")
 	config.PORT = os.Getenv("PORT")
@@ -38,7 +38,7 @@ func GetConfig() (*Config, error) {
 	config.SMTP_PORT = os.Getenv("SMTP_PORT")
 	config.SMTP_HOST = os.Getenv("SMTP_HOST")
 	config.SMTP_USER = os.Getenv("SMTP_USER")
-	config.SMTP_PASSWORD = os.Getenv("SMTP_PASSWO")
+	config.SMTP_PASSWORD = os.Getenv("SMTP_PASSWORD")
 
 	return config, nil
 }
