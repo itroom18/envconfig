@@ -20,13 +20,11 @@ type Config struct {
 	SMTP_PASSWORD string
 }
 
-func GetConfig() (*Config, error) {
+func GetConfig(config *Config) (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
 	}
-
-	config := &Config{}
 
 	config.SECRET_KEY = os.Getenv("SECRET_KEY")
 	config.PORT = os.Getenv("PORT")
