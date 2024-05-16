@@ -1,4 +1,4 @@
-module github.com/itroom18/envconfig
+module github.com/itroom18/env-config
 
 go 1.22.2
 
