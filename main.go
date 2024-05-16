@@ -1,7 +1,9 @@
 package envconfig
 
 import (
+	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/joho/godotenv"
 )
@@ -41,4 +43,36 @@ func GetConfig() (*Config, error) {
 	config.SMTP_PASSWORD = os.Getenv("SMTP_PASSWORD")
 
 	return config, nil
+}
+
+func WriteConfig(config Config) error {
+	file, err := os.OpenFile(".env", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Ошибка открытия файла:", err)
+		return err
+	}
+	defer file.Close()
+
+	if err := file.Truncate(0); err != nil {
+		fmt.Println("Ошибка очистки файла:", err)
+		return err
+	}
+
+	fmt.Println("Файл .env успешно очищен.")
+
+	t := reflect.TypeOf(config)
+
+	for i := 0; i < t.NumField(); i++ {
+		key := t.Field(i)
+		value := reflect.ValueOf(config).Field(i).Interface()
+		_, err = fmt.Fprintf(file, "%s=%v\n", key.Name, value)
+		if err != nil {
+			fmt.Println("Ошибка записи в файл:", err)
+			return err
+		}
+
+	}
+	fmt.Println("Файл .env успешно заполнен.")
+
+	return nil
 }
