@@ -8,19 +8,48 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	SECRET_KEY    string
-	PORT          string
-	DB_HOST       string
-	DB_PORT       string
-	DB_NAME       string
-	DB_USER       string
-	DB_PASSWORD   string
-	SMTP_PORT     string
-	SMTP_HOST     string
-	SMTP_USER     string
-	SMTP_PASSWORD string
-}
+type (
+	Config struct {
+		// Server
+		SECRET_KEY string
+		PORT       string
+		// Database
+		DB DB
+		// SMTP
+		SMTP SMTP
+		// AWS
+		AWS AWS
+		// Service
+		SERVICE SERVICE
+	}
+
+	DB struct {
+		HOST     string
+		PORT     string
+		NAME     string
+		USER     string
+		PASSWORD string
+	}
+
+	SMTP struct {
+		PORT     string
+		HOST     string
+		USER     string
+		PASSWORD string
+	}
+
+	AWS struct {
+		KEY      string
+		SECRET   string
+		BUCKET   string
+		REGION   string
+		ENDPOINT string
+	}
+
+	SERVICE struct {
+		USERS_URI string
+	}
+)
 
 func GetConfig() (*Config, error) {
 	err := godotenv.Load()
@@ -29,50 +58,83 @@ func GetConfig() (*Config, error) {
 	}
 
 	config := &Config{}
-
-	config.SECRET_KEY = os.Getenv("SECRET_KEY")
-	config.PORT = os.Getenv("PORT")
-	config.DB_HOST = os.Getenv("DB_HOST")
-	config.DB_PORT = os.Getenv("DB_PORT")
-	config.DB_NAME = os.Getenv("DB_NAME")
-	config.DB_USER = os.Getenv("DB_USER")
-	config.DB_PASSWORD = os.Getenv("DB_PASSWORD")
-	config.SMTP_PORT = os.Getenv("SMTP_PORT")
-	config.SMTP_HOST = os.Getenv("SMTP_HOST")
-	config.SMTP_USER = os.Getenv("SMTP_USER")
-	config.SMTP_PASSWORD = os.Getenv("SMTP_PASSWORD")
+	setConfigFields(config)
 
 	return config, nil
 }
 
+func setConfigFields(config *Config) {
+	v := reflect.ValueOf(config).Elem()
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		switch fieldValue.Kind() {
+		case reflect.Struct:
+			setNestedConfigFields(fieldValue)
+		default:
+			envVar := field.Name
+			fieldValue.SetString(os.Getenv(envVar))
+		}
+	}
+}
+
+func setNestedConfigFields(v reflect.Value) {
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		envVar := t.Name() + "_" + field.Name
+		fieldValue := v.Field(i)
+		fieldValue.SetString(os.Getenv(envVar))
+	}
+}
+
 func WriteConfig(config Config) error {
-	file, err := os.OpenFile(".env", os.O_APPEND|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(".env", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println("Ошибка открытия файла:", err)
 		return err
 	}
 	defer file.Close()
 
-	if err := file.Truncate(0); err != nil {
-		fmt.Println("Ошибка очистки файла:", err)
-		return err
-	}
+	writeConfigFields(file, reflect.ValueOf(config))
 
-	fmt.Println("Файл .env успешно очищен.")
+	fmt.Println("Файл .env успешно заполнен.")
+	return nil
+}
 
-	t := reflect.TypeOf(config)
+func writeConfigFields(file *os.File, v reflect.Value) {
+	t := v.Type()
 
 	for i := 0; i < t.NumField(); i++ {
-		key := t.Field(i)
-		value := reflect.ValueOf(config).Field(i).Interface()
-		_, err = fmt.Fprintf(file, "%s=%v\n", key.Name, value)
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+
+		switch fieldValue.Kind() {
+		case reflect.Struct:
+			writeNestedConfigFields(file, field.Name, fieldValue)
+		default:
+			_, err := fmt.Fprintf(file, "%s=%v\n", field.Name, fieldValue.Interface())
+			if err != nil {
+				fmt.Println("Ошибка записи в файл:", err)
+			}
+		}
+	}
+}
+
+func writeNestedConfigFields(file *os.File, prefix string, v reflect.Value) {
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		envVar := prefix + "_" + field.Name
+		fieldValue := v.Field(i)
+		_, err := fmt.Fprintf(file, "%s=%v\n", envVar, fieldValue.Interface())
 		if err != nil {
 			fmt.Println("Ошибка записи в файл:", err)
-			return err
 		}
-
 	}
-	fmt.Println("Файл .env успешно заполнен.")
-
-	return nil
 }
