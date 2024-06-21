@@ -17,6 +17,8 @@ type (
 		DB DB
 		// SMTP
 		SMTP SMTP
+		// SMS
+		SMS SMS
 		// AWS
 		AWS AWS
 		// Service
@@ -38,6 +40,11 @@ type (
 		PASSWORD string
 	}
 
+	SMS struct {
+		LOGIN    string
+		PASSWORD string
+	}
+
 	AWS struct {
 		KEY      string
 		SECRET   string
@@ -47,7 +54,8 @@ type (
 	}
 
 	SERVICE struct {
-		USERS_URI string
+		GATEWAY_URI  string
+		GATEWAY_PORT string
 	}
 )
 
