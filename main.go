@@ -23,6 +23,8 @@ type (
 		AWS AWS
 		// Service
 		SERVICE SERVICE
+		// Broker
+		BROKER BROKER
 	}
 
 	DB struct {
@@ -56,6 +58,12 @@ type (
 	SERVICE struct {
 		GATEWAY_URI  string
 		GATEWAY_PORT string
+	}
+
+	BROKER struct {
+		ID   string
+		HOST string
+		PORT string
 	}
 )
 
